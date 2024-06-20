@@ -62,7 +62,7 @@ _menuItemsRegistered = set()
 
 @implementer(IProcessStarting)
 def beforeSiteTraverse(event):
-    portal = api.portal.get()
-    folder = portal[periodici_folder_id]
+    #portal = api.portal.get()
+    #folder = portal[periodici_folder_id]
     huey_tasks = run_buildout_periodic_tasks(huey_taskqueue, folder)
         
