@@ -1,0 +1,43 @@
+<configure
+    xmlns="http://namespaces.zope.org/zope"
+    xmlns:browser="http://namespaces.zope.org/browser"
+    xmlns:plone="http://namespaces.plone.org/plone"
+    i18n_domain="csi.asyncmanager">
+
+  <!-- -*- extra stuff goes here -*- -->
+
+  <browser:viewlet
+     name="async-manager"
+     for="collective.taskqueue2.interfaces.IAsyncContext"
+     manager="plone.app.layout.viewlets.interfaces.IAboveContentTitle"
+     layer="collective.taskqueue2.interfaces.ICollectiveTaskqueue2Layer"
+     class=".async_manager.AsyncManager"
+     template="async-manager.pt"
+     permission="cmf.ReviewPortalContent"
+     />
+
+  <browser:page
+    name="celerystatus"
+    for="collective.taskqueue2.interfaces.IAsyncContext"
+    class=".async_manager.Celerystatus"
+    template="celerystatus.pt"
+    permission="cmf.ReviewPortalContent"
+    />
+
+  <browser:page
+    name="celeryprocessed"
+    for="collective.taskqueue2.interfaces.IAsyncContext"
+    class=".async_manager.Celerystatus"
+    template="celeryprocessed.pt"
+    permission="cmf.ReviewPortalContent"
+    />
+
+  <browser:page
+    name="deleteList"
+    for="collective.taskqueue2.interfaces.IAsyncContext"
+    class=".async_manager.DeleteList"
+    permission="cmf.ReviewPortalContent"
+    />
+
+
+</configure>

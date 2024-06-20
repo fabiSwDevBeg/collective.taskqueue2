@@ -1,0 +1,100 @@
+
+<dl class="portalMessage info success-task" style="display:none;margin: 15px auto;">
+    <dt>Info</dt>
+    <dd>Task terminato. Ricaricare la pagina per visualizzare i risultati.</dd>
+</dl>
+<div class="portal-status-message asyncmanager-block" style="border:none; padding: 5px; margin-bottom:20px;">
+
+<script>
+$(document).ready(function(){
+
+    var timeout = setTimeout(reloadData, 1000);
+    let url = $('#processes').data('url');
+    $('#processed').load(url+"/@@celeryprocessed");
+    var listUpdate = [];
+
+    function reloadData(){
+        $('#processes').load(url+"/@@celerystatus", function(){
+            let $elems = $("progress");
+            let $message_success = $(".success-task");
+            let i = 0;
+            while ($elems[i]) {
+                let elem = $elems[i];
+                let value_elem = $(elem).attr('value');
+                let id_elem = $(elem).attr('name');
+                if (value_elem == 100){
+                    if(!listUpdate.includes(id_elem)){
+                        $('#' + id_elem).hide();
+                    }
+                    else{
+                        $message_success.show();
+                    }
+                }
+                else{
+                    listUpdate.push(id_elem);
+                }
+                i++;
+            }
+            let $task_title = $(".task-title");
+            let $no_task = $(".not-task-title");
+            let $async_block = $(".asyncmanager-block");
+            if(listUpdate.length == 0){
+                $async_block.css("border", "none");
+                if ($task_title.length) {
+                    $task_title.hide();
+                }
+                if ($(".pat-plone-modal").length) {
+                    $async_block.css("border", "1px solid #d6dce3");
+                    if ($no_task.length) {
+                        $no_task.show();
+                    }
+                    
+                }
+            }else{
+                $async_block.css("border", "1px solid #d6dce3");
+                if ($task_title.length) {
+                    $task_title.show();
+                }
+                if ($no_task.length) {
+                    $no_task.hide();
+                }
+            }
+            
+            // attiva manualmente il pattern pat-moment
+            $('[data-pat-moment]').each(function() {
+                $(this).patMoment();
+            });
+
+            timeout = setTimeout(reloadData, 2000);
+        });
+    }
+});
+</script>
+
+    <h3 class="task-title" 
+        style="margin: 0px; display:none;">Task in esecuzione:</h3>
+    <div id="processes" data-url=""
+         tal:attributes="data-url context/absolute_url"/>
+
+    <div style="margin-top: 5px;" tal:condition="view/anyFinished">
+        <div class="not-task-title" style="display:none;"  tal:content="string: Nessun task in esecuzione"/>
+        <a href="#modal1" class="pat-plone-modal"
+                data-pat-plone-modal="width: 75%;
+                                    position: 'center middle';
+                                    title: Elenco dei task conclusi:;
+                                    buttons: .formControls > input[type='submit'];"
+                style="margin-top: 5px;">Task conclusi...</a>
+
+        <div id="modal1" style="display: none"
+            tal:define="absurl context/absolute_url;">
+            <div id="processed"/>
+            <div class="formControls">
+                <form id="livesearch0" action="search" 
+                    tal:attributes="action python:absurl+'/@@deleteList'">
+                    <input id="deleteList" type="submit" value="Cancella la cronologia">
+                </form>
+            </div>
+        </div>
+    </div>
+
+</div>

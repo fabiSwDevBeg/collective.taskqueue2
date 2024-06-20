@@ -47,8 +47,8 @@
 
   <!-- -*- extra stuff goes here -*- -->
 
-
-  <include package=".example" />
+  
+  <include package=".viewlets" />
 
 
 </configure>

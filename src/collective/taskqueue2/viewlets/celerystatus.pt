@@ -1,0 +1,36 @@
+<metal:block define-macro="statuses">
+    <div class="asyncmanager-statuses">
+        <tal:list tal:repeat="item view/info">
+            <div tal:define="id python:item[0];
+                             info python:item[1];
+                             user info/userid|string:nouserid;
+                             start info/timestart|string:notimestart;
+                             status info/status|python:{};
+                             chiamata info/context|string:errore;
+                             result status/result;
+                             esito status/successful;
+                             stato status/status;
+                             processati python:result.get('processati', 0 ) if isinstance(result, dict) else None;
+                             totali python:result.get('totali', 100 ) if isinstance(result, dict) else None;">
+                <div tal:attributes="id id;title id" tal:condition="python: stato in ['UPDATE','SUCCESS','SENT']">
+                    utente:<i tal:content="user"/>
+                    | azione:<i tal:content="chiamata"/>
+                    | start:<i class="pat-moment" data-pat-moment="format:L LT" tal:content="start"/>
+                    <span tal:condition="python: stato not in ['UPDATE']">
+                        | stato:<i tal:content="stato"/>
+                    </span>
+                    <span tal:condition="python: stato in ['UPDATE']">
+                        | avanzamento:<i tal:content="processati"/>
+                        <progress max="10" value="70" class="plone-progress-bar1"
+                            tal:attributes="name id;
+                                max totali;
+                                value python:100 if esito else processati" > 70% </progress>
+                    </span>
+                    <progress tal:condition="python: stato in ['SUCCESS']"
+                        max="100" value="100" tal:attributes="name id;" style="display: none;"/>
+                    <i tal:content="id" style="display: none;"/>
+                </div>
+            </div>
+        </tal:list>
+    </div>
+</metal:block>

@@ -1,0 +1,29 @@
+<metal:block define-macro="statuses">
+    <div class="asyncmanager-statuses">
+        <tal:list tal:repeat="item view/info">
+            <ul tal:define="id python:item[0];
+                            info python:item[1];
+                            user info/userid|string:nouserid;
+                            start info/timestart|string:notimestart;
+                            status info/status|python:{};
+                            chiamata info/context|string:errore;
+                            result status/result;
+                            esito status/successful;
+                            stato status/status;
+                            ">
+                <li tal:attributes="title id" tal:condition="python: stato in ['FAILURE','SUCCESS','PENDING']">
+                    utente:<i tal:content="user"/>
+                    | azione:<i tal:content="chiamata"/>
+                    | start:<i class="pat-moment" data-pat-moment="format:L LT" tal:content="start"/>
+                    <span tal:condition="python: id not in ['processo-sincrono']">
+                        | stato:<i tal:content="stato"/>
+                    </span>
+                    <span tal:condition="python: id in ['processo-sincrono']">
+                        | stato:<i tal:content="string: ESEGUITO"/>
+                    </span>
+                    <i tal:content="id" style="display: none;"/>
+                </li>
+            </ul>
+        </tal:list>
+    </div>
+</metal:block>
