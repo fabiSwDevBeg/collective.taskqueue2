@@ -15,4 +15,4 @@ if huey_log_level:
 
 
 def update_progress(task_id, progress):
-    
+    pass

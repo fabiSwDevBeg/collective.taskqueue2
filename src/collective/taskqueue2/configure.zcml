@@ -11,7 +11,12 @@
     for="zope.processlifetime.IProcessStarting"
     handler=".huey_consumer.startup"
   />
-
+  
+  <subscriber
+    for="zope.processlifetime.IProcessStarting"
+    handler=".beforeSiteTraverse"
+  />
+  
   <!--
     Be careful if you use general includeDependencies, it can have side effects!
     Better import explicit packages or configurations ;)
