@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-from csi.asyncmanager import _
-from csi.asyncmanager.interfaces import IAsyncContext
+from collective.taskqueue2 import _
+from collective.taskqueue2.interfaces import IAsyncContext
 from plone.app.layout.viewlets import ViewletBase
 from Products.Five.browser import BrowserView
 from Products.statusmessages.interfaces import IStatusMessage
