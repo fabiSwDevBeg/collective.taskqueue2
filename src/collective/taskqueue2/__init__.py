@@ -1,17 +1,15 @@
 # -*- coding: utf-8 -*-
 """Init and utils."""
+from collective.taskqueue2.huey_config import huey_taskqueue
+from collective.taskqueue2.setuphandlers import periodici_folder_id
+from plone import api
+from Testing.makerequest import makerequest
+from zope.component import getGlobalSiteManager
+from zope.component.hooks import setSite
 from zope.i18nmessageid import MessageFactory
+
 import transaction
 import Zope2
-from Testing.makerequest import makerequest
-from zope.component.hooks import setSite
-from zope.interface import implementer
-from plone import api
-from collective.taskqueue2.setuphandlers import periodici_folder_id
-from collective.taskqueue2.huey_config import run_buildout_periodic_tasks, huey_taskqueue
-from zope.component import getGlobalSiteManager
-from collective.taskqueue2.interfaces import ICollectiveTaskqueue2Layer
-from zope.processlifetime import IProcessStarting
 
 
 KEY = "collective.taskqueue2"
@@ -57,12 +55,4 @@ def generateContext():
         return wrapper  
     return inner
 
-
-_menuItemsRegistered = set()
-
-@implementer(IProcessStarting)
-def beforeSiteTraverse(event):
-    #portal = api.portal.get()
-    #folder = portal[periodici_folder_id]
-    huey_tasks = run_buildout_periodic_tasks(huey_taskqueue, folder)
         

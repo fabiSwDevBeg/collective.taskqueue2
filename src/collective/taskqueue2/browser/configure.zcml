@@ -18,6 +18,16 @@
     attribute="stats"
     permission="cmf.ManagePortal"
   />
+  
+  
+  <browser:page
+    name="taskqueue2-controlpanel"
+    for="Products.CMFCore.interfaces.ISiteRoot"
+    class=".controlpanel.TaskQueue2ControlPanel"
+    permission="cmf.ManagePortal"
+    />
+    
+  
 
   <!-- Publish static files -->
   <plone:static

@@ -1,53 +1,18 @@
 from collective.taskqueue2.huey_logger import LOG
+from collective.taskqueue2.interfaces import IAsyncContext
 from huey import FileHuey
 from huey import MemoryHuey
 from huey import RedisHuey
 from huey import SqliteHuey
+from zope.component import getAdapter
 
 import furl
+import importlib
 import os
 import sys
-import importlib
 
 
 default_huey_url = "sqlite:///tmp/huey_queue.sqlite"
-
-
-def run_buildout_periodic_tasks(huey_taskqueue, context):
-    config_path = os.path.join(str(os.getcwd()).replace("/bin", ""), 'parts/taskqueue2')
-    sys.path.append(config_path)
-    
-    try:
-        import taskqueue2config
-    except:
-        LOG.info(f"No recipe found.")
-        return
-    
-    sys.path.remove(config_path)
-    #huey_taskqueue.revoke_all()
-    if hasattr(taskqueue2config, 'task_schedule'):
-        for task_name, task_dict in taskqueue2config.task_schedule.items():
-            task_path = task_dict.get('task')
-            task_schedule = task_dict.get('schedule')
-            if task_path:
-                module_path, function_name = task_path.rsplit('.', 1)
-                try:
-                    module = importlib.import_module(module_path)
-                    task_function = getattr(module, function_name)
-                    #Succedeva perchè importando il modulo che conteneva 
-                    #la funzione già decorata con .task partiva il task
-                    #huey_taskqueue._registry.unregister(huey_taskqueue._registry._registry[task_path])
-                    if context:
-                        if "collective.taskqueue2." + task_path in huey_taskqueue._registry._registry:
-                            #aggiungi le annotations su oggetto context
-                            pass
-                        else:
-                            huey_taskqueue.periodic_task(task_schedule, name=task_path)(task_function)
-                            #aggiungi le annotations su oggetto context
-                    print(f"Eseguito {task_path}")
-                except (ModuleNotFoundError, AttributeError) as e:
-                    print(f"Errore nell'importare o eseguire {task_path}: {e}")
-        return huey_taskqueue._registry
 
 def get_huey_taskqueue():
     """Return a Huey taskqueue instance"""
@@ -77,6 +42,5 @@ def get_huey_taskqueue():
     
 
 huey_taskqueue = get_huey_taskqueue()
-#huey_tasks = run_buildout_periodic_tasks(huey_taskqueue, None)
 
 LOG.info(f"Using taskqueue {huey_taskqueue}, {huey_taskqueue.__dict__}")

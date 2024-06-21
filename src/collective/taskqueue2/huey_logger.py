@@ -12,7 +12,3 @@ if huey_log_level:
     if huey_log_level not in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]:
         raise ValueError(f"Invalid log level for $HUEY_LOG_LEVEL ({huey_log_level})")
     LOG.setLevel(getattr(logging, huey_log_level))
-
-
-def update_progress(task_id, progress):
-    pass
