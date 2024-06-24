@@ -11,8 +11,8 @@ from plone.autoform import directives as form
 from plone.z3cform import layout
 from z3c.form.interfaces import IDisplayForm
 from zope import schema
-from zope.interface import Interface
 from zope.interface import implementer
+from zope.interface import Interface
 from zope.schema.interfaces import IList
 
 

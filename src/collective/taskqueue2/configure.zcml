@@ -44,6 +44,10 @@
       factory=".setuphandlers.HiddenProfiles"
       name="collective.taskqueue2-hiddenprofiles"
       />
+      
+  <adapter factory=".adapters.BasicAsyncAwareContext"
+      provides="collective.taskqueue2.interfaces.IAsyncContext"
+      />
 
   <!-- -*- extra stuff goes here -*- -->
 

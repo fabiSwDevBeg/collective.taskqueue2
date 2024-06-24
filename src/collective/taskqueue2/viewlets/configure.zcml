@@ -16,28 +16,28 @@
      permission="cmf.ReviewPortalContent"
      />
 
-  <browser:page
-    name="celerystatus"
-    for="collective.taskqueue2.interfaces.IAsyncContext"
-    class=".async_manager.Celerystatus"
-    template="celerystatus.pt"
-    permission="cmf.ReviewPortalContent"
-    />
+  <!--<browser:page-->
+    <!--name="celerystatus"-->
+    <!--for="collective.taskqueue2.interfaces.IAsyncContext"-->
+    <!--class=".async_manager.Celerystatus"-->
+    <!--template="celerystatus.pt"-->
+    <!--permission="cmf.ReviewPortalContent"-->
+    <!--/>-->
 
-  <browser:page
-    name="celeryprocessed"
-    for="collective.taskqueue2.interfaces.IAsyncContext"
-    class=".async_manager.Celerystatus"
-    template="celeryprocessed.pt"
-    permission="cmf.ReviewPortalContent"
-    />
+  <!--<browser:page-->
+    <!--name="celeryprocessed"-->
+    <!--for="collective.taskqueue2.interfaces.IAsyncContext"-->
+    <!--class=".async_manager.Celerystatus"-->
+    <!--template="celeryprocessed.pt"-->
+    <!--permission="cmf.ReviewPortalContent"-->
+    <!--/>-->
 
-  <browser:page
-    name="deleteList"
-    for="collective.taskqueue2.interfaces.IAsyncContext"
-    class=".async_manager.DeleteList"
-    permission="cmf.ReviewPortalContent"
-    />
+  <!--<browser:page-->
+    <!--name="deleteList"-->
+    <!--for="collective.taskqueue2.interfaces.IAsyncContext"-->
+    <!--class=".async_manager.DeleteList"-->
+    <!--permission="cmf.ReviewPortalContent"-->
+    <!--/>-->
 
 
 </configure>

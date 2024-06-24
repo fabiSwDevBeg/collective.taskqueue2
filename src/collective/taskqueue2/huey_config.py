@@ -14,6 +14,9 @@ import sys
 
 default_huey_url = "sqlite:///tmp/huey_queue.sqlite"
 
+tasks_folder_id = "tasks-folder"
+tasks_folder_title = "Cartella Tasks"
+
 def get_huey_taskqueue():
     """Return a Huey taskqueue instance"""
 

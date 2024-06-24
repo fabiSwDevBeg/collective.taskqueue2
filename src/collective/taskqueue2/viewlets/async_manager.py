@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from collective.taskqueue2 import _
 from collective.taskqueue2.interfaces import IAsyncContext
+from collective.taskqueue2.huey_events import log_status_types
 from plone.app.layout.viewlets import ViewletBase
 from Products.Five.browser import BrowserView
 from Products.statusmessages.interfaces import IStatusMessage
@@ -8,43 +9,6 @@ from zope.component import getAdapter
 
 
 TERMINATI = ['FAILURE', 'SUCCESS', 'PENDING']
-
-class Celerystatus(BrowserView):
-
-    def getProcesses(self):
-        keys = self.manager.getProcessKeys()
-        return keys
-
-    def updateInfo(self, inactive=0):
-
-        for k in self.getProcesses():
-            info = self.manager.getProcessInfo(k)
-            self.info.append((k, info))
-
-    def __call__(self):
-        self.manager = getAdapter(self.context, IAsyncContext)
-        self.info = []
-        self.updateInfo()
-        self.msg = _(str(self.info))
-        return self.index()
-
-
-
-class DeleteList(BrowserView):
-
-    def __call__(self):
-        self.manager = getAdapter(self.context, IAsyncContext)
-        keysToDel = []
-        keys = self.manager.getProcessKeys()
-        for k in keys:
-            info = self.manager.getProcessInfo(k)
-            if (info['status'].status in TERMINATI):
-                keysToDel.append(k)
-        if(keysToDel):
-            self.manager.deleteProcess(keysToDel)
-            self.status = _(u"Tasks deleted.")
-            IStatusMessage(self.request).addStatusMessage(self.status, type="info")
-        return self.request.response.redirect(self.context.absolute_url())
 
 
 class AsyncManager(ViewletBase):
@@ -55,9 +19,11 @@ class AsyncManager(ViewletBase):
         self.manager = getAdapter(self.context, IAsyncContext)
         keys = self.manager.getProcessKeys()
         for k in keys:
-            info = self.manager.getProcessInfo(k)
-            if (info['status'].status in TERMINATI):
-                self.anyFinished = True
-            else:
+            progress, statuses = self.manager.getProcessInfo(k)
+            if len(progress) > 0:
                 self.anyRunning = True
+            if len(statuses) > 0:
+                for status in statuses:
+                    if status['status_type'] in log_status_types[:2]:
+                        self.anyFinished = True
         return self.index()

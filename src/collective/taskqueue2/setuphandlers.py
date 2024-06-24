@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
-from collective.taskqueue2.interfaces import IAsyncContext
-from plone.app.contenttypes.interfaces import IFolder
 from Products.CMFPlone.interfaces import INonInstallable
+from collective.taskqueue2.interfaces import IAsyncContext
+from plone import api
+from plone.app.contenttypes.interfaces import IFolder
+from zope.interface import alsoProvides
 from zope.interface import implementer
-from zope.processlifetime import IDatabaseOpenedWithRoot
+from collective.taskqueue2.huey_config import tasks_folder_id
 
 
-periodici_folder_id = "task-periodici"
-periodici_folder_title = "Task Periodici"
+
 
 @implementer(INonInstallable)
 class HiddenProfiles(object):
@@ -25,7 +26,24 @@ class HiddenProfiles(object):
 def post_install(context):
     """Post install script"""
     # Do something at the end of the installation of this package.
-   
+    portal = api.portal.get()
+    if tasks_folder_id in context:
+        raise ValueError(f"A folder with the ID '{folder_id}' already exists.")
+
+    folder = api.content.create(
+        type='Folder',
+        id=tasks_folder_id,
+        container=portal, 
+    )
+
+    # Apply the IAsyncContext interface to the folder
+    alsoProvides(folder, IAsyncContext)
+    alsoProvides(folder, IFolder)
+
+    # Reindex the object to make sure the new interface is indexed
+    folder.reindexObject(idxs=['object_provides'])
+
+    return folder      
 
 def uninstall(context):
     """Uninstall script"""

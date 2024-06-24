@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """Module where all interfaces, events and exceptions live."""
 
+from zope import schema
 from zope.interface import Interface
 from zope.publisher.interfaces.browser import IDefaultBrowserLayer
-from zope import schema
 
 
 class ICollectiveTaskqueue2Layer(IDefaultBrowserLayer):
@@ -16,17 +16,6 @@ class IAsyncContext(Interface):
     context implementing it will show information about async process ongoing
     """
 
-    def getProcessKeys(self):
-        """return list of celery id"""
-
-    def getProcess(self, id):
-        """ return status of process by id"""
-
-    def setProcess(self, id, **kwargs):
-        """ store celery id"""
-
-    def deleteProcess(self, idList, **kwargs):
-        """ delete celery id"""
 
 class ILogsSchema(Interface):
     """ marker interface
@@ -38,22 +27,30 @@ class ILogsSchema(Interface):
         description=u'Codice Identificativo del Task',
         required=True,
         default="", 
-        #readonly=True,
+        readonly=True,
     )
+    
+    context_path = schema.TextLine(
+        title=u'Context Path',
+        description=u'Path del Contesto su cui è stata eseguita l\' azione',
+        required=True,
+        default="", 
+        readonly=True,
+    )    
     
     status_type = schema.TextLine(
         title=u'Tipo di Log',
         description=u'Categoria del Log',
         required=True,
         default="", 
-        #readonly=True,
+        readonly=True,
     )
     
     data = schema.Datetime(
         title=u'Data Esecuzione',
         description=u"Data e Ora dell'esecuzione dell'azione",
         required=True,
-        #readonly=True,
+        readonly=True,
     )
     
     message = schema.TextLine(
@@ -61,7 +58,7 @@ class ILogsSchema(Interface):
         description=u"Descrizione dell'operazione",
         required=True,
         default="",
-        #readonly=True,
+        readonly=True,
     )
     
     time_elapsed = schema.Int(
@@ -69,5 +66,5 @@ class ILogsSchema(Interface):
         description=u"Tempo trascorso dall'inizio dell'operazione",
         required=True,
         default=0,
-        #readonly=True,        
+        readonly=True,        
     )
