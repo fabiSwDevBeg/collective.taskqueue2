@@ -16,21 +16,21 @@
      permission="cmf.ReviewPortalContent"
      />
 
-  <!--<browser:page-->
-    <!--name="celerystatus"-->
-    <!--for="collective.taskqueue2.interfaces.IAsyncContext"-->
-    <!--class=".async_manager.Celerystatus"-->
-    <!--template="celerystatus.pt"-->
-    <!--permission="cmf.ReviewPortalContent"-->
-    <!--/>-->
+  <browser:page
+    name="taskstatus"
+    for="collective.taskqueue2.interfaces.IAsyncContext"
+    class=".async_manager.TaskStatus"
+    template="taskstatus.pt"
+    permission="cmf.ReviewPortalContent"
+    />
 
-  <!--<browser:page-->
-    <!--name="celeryprocessed"-->
-    <!--for="collective.taskqueue2.interfaces.IAsyncContext"-->
-    <!--class=".async_manager.Celerystatus"-->
-    <!--template="celeryprocessed.pt"-->
-    <!--permission="cmf.ReviewPortalContent"-->
-    <!--/>-->
+  <browser:page
+    name="tasksprocessed"
+    for="collective.taskqueue2.interfaces.IAsyncContext"
+    class=".async_manager.TaskStatus"
+    template="tasksprocessed.pt"
+    permission="cmf.ReviewPortalContent"
+    />
 
   <!--<browser:page-->
     <!--name="deleteList"-->

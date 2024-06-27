@@ -4,7 +4,7 @@
 from zope import schema
 from zope.interface import Interface
 from zope.publisher.interfaces.browser import IDefaultBrowserLayer
-
+from plone.autoform import directives
 
 class ICollectiveTaskqueue2Layer(IDefaultBrowserLayer):
     """Marker interface that defines a browser layer."""
@@ -25,46 +25,42 @@ class ILogsSchema(Interface):
     task_id = schema.TextLine(
         title=u'ID Task',
         description=u'Codice Identificativo del Task',
-        required=True,
-        default="", 
-        readonly=True,
     )
+    directives.mode(task_id='display')
     
     context_path = schema.TextLine(
         title=u'Context Path',
         description=u'Path del Contesto su cui è stata eseguita l\' azione',
-        required=True,
-        default="", 
-        readonly=True,
-    )    
+    )
+    directives.mode(context_path='display')
     
     status_type = schema.TextLine(
         title=u'Tipo di Log',
         description=u'Categoria del Log',
-        required=True,
-        default="", 
-        readonly=True,
     )
+    directives.mode(status_type='display')
     
     data = schema.Datetime(
         title=u'Data Esecuzione',
         description=u"Data e Ora dell'esecuzione dell'azione",
-        required=True,
-        readonly=True,
     )
+    directives.mode(data='display')
     
-    message = schema.TextLine(
+    message = schema.Text(
         title=u'Messaggio',
         description=u"Descrizione dell'operazione",
-        required=True,
-        default="",
-        readonly=True,
     )
+    directives.mode(message='display')
     
-    time_elapsed = schema.Int(
+    time_elapsed = schema.Float(
         title=u'Tempo Trascorso',
         description=u"Tempo trascorso dall'inizio dell'operazione",
-        required=True,
-        default=0,
-        readonly=True,        
     )
+    directives.mode(time_elapsed='display')
+    
+    user = schema.TextLine(
+        title=u'Utente',
+        description=u"Nome Utente",
+    )
+    directives.mode(user='display')
+    

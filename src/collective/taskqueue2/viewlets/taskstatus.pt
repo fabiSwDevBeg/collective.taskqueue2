@@ -1,0 +1,38 @@
+<metal:block define-macro="statuses">
+    <div class="asyncmanager-statuses">
+        <tal:list tal:repeat="item view/info">
+            <div tal:define="id python:item[0];
+                             info python:item[1];
+                             user info/userid|string:SYSTEM;
+                             start info/timestart|string:notimestart;
+                             status info/status|python:{};
+                             chiamata info/context_path|string:errore;
+                             result info/progress;
+                             esito python: status=='SUCCESS';
+                             processati python:result.get('processati', 0 ) if isinstance(result, dict) else result;
+                             totali python:result.get('totali', 100 ) if isinstance(result, dict) else 100;">
+                <div tal:attributes="id id;title id" >
+                    Nome Task:<i tal:content="id"/>
+                    | Utente:<i tal:content="user"/>
+                    <!--| Azione:<i tal:content="chiamata"/>-->
+                    | Start:<i class="pat-moment" tal:content="python: view.timestamp_to_string(start)"/>
+                    <span tal:condition="python: status == 'PENDING'">
+                        | Stato:<i tal:content="status"/>
+                    </span>
+                    <span tal:condition="python: status == 'PENDING'"
+                          tal:define="percentuale python:100 if esito else processati">
+                        | Avanzamento:<i tal:content="python: str(int(processati)) + '%'"/>
+                        <progress max="10" value="70" class="plone-progress-bar1"
+                            tal:attributes="name id;
+                                max totali;
+                                value percentuale" 
+                            tal:content="python: str(int(percentuale)) + '%'"> % </progress>
+                    </span>
+                    <progress tal:condition="python: status == 'SUCCESS'"
+                        max="100" value="100" tal:attributes="name id;" style="display: none;"/>
+                    <i tal:content="id" style="display: none;"/>
+                </div>
+            </div>
+        </tal:list>
+    </div>
+</metal:block>

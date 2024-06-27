@@ -9,12 +9,12 @@
 $(document).ready(function(){
 
     var timeout = setTimeout(reloadData, 1000);
-    let url = $('#processes').data('url');
-    $('#processed').load(url+"/@@celeryprocessed");
+    let url = window.location.href;
+    $('#processed').load(url+"/@@tasksprocessed");
     var listUpdate = [];
 
     function reloadData(){
-        $('#processes').load(url+"/@@celerystatus", function(){
+        $('#processes').load(url + "/@@taskstatus", function(){
             let $elems = $("progress");
             let $message_success = $(".success-task");
             let i = 0;
@@ -38,6 +38,8 @@ $(document).ready(function(){
             let $task_title = $(".task-title");
             let $no_task = $(".not-task-title");
             let $async_block = $(".asyncmanager-block");
+            console.log(listUpdate);
+            console.log($task_title);
             if(listUpdate.length == 0){
                 $async_block.css("border", "none");
                 if ($task_title.length) {

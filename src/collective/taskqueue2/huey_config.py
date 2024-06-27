@@ -4,6 +4,11 @@ from huey import FileHuey
 from huey import MemoryHuey
 from huey import RedisHuey
 from huey import SqliteHuey
+from huey.signals import SIGNAL_ERROR 
+from huey.signals import SIGNAL_LOCKED 
+from huey.signals import SIGNAL_CANCELED 
+from huey.signals import SIGNAL_REVOKED 
+from huey.signals import SIGNAL_COMPLETE 
 from zope.component import getAdapter
 
 import furl
@@ -45,5 +50,17 @@ def get_huey_taskqueue():
     
 
 huey_taskqueue = get_huey_taskqueue()
+
+
+@huey_taskqueue.signal(SIGNAL_ERROR, SIGNAL_LOCKED, SIGNAL_CANCELED, SIGNAL_REVOKED)
+def task_not_executed_handler(signal, task, exc=None):
+    # This handler will be called for the 4 signals listed, which
+    # correspond to error conditions.
+    print('[%s] %s - not executed' % (signal, task.id))
+
+@huey_taskqueue.signal(SIGNAL_COMPLETE)
+def task_success(signal, task):
+    # This handle will be called for each task that completes successfully.
+    pass
 
 LOG.info(f"Using taskqueue {huey_taskqueue}, {huey_taskqueue.__dict__}")
