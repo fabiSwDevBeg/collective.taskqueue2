@@ -17,6 +17,11 @@ class BasicAsyncAwareContext():
     def __init__(self, context):
         self.context = context
         self.app = api.portal.get()
+        self.progress_class = None
+        
+    def generateProgressClassIfNeeded(self, id_task):
+        if self.progress_class is None or self.progress_class.task_name != id_task:
+            self.progress_class = Progress(self.app, id_task)    
 
     def getProcessKeys(self):
         """return list of tasks ids"""
@@ -26,20 +31,20 @@ class BasicAsyncAwareContext():
     def getProcessInfo(self, id_task):
         """ return status of process by id"""
         
-        progress_class = Progress(self.app, id_task)
+        self.generateProgressClassIfNeeded(self, id_task)
         return (
-            progress_class.get_progress(self.context),
-            progress_class.get_status(self.context)
+            self.progress_class.get_progress(self.context),
+            self.progress_class.get_status(self.context)
         )
 
     def setProcess(self, id_task, progress):
         """ store progress on Redis"""
         
-        progress_class = Progress(self.app, id_task)
-        progress_class.set_progress(self.context, progress)
+        self.generateProgressClassIfNeeded(self, id_task)
+        self.progress_class.set_progress(self.context, progress)
 
     def deleteProcess(self, id_task, **kwargs):
         """ delete process statuses from Redis"""
         
-        progress_class = Progress(self.app, id_task)
-        progress_class.set_end_progress(self.context)
+        self.generateProgressClassIfNeeded(self, id_task)
+        self.progress_class.set_end_progress(self.context)

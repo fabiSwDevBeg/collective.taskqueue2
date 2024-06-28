@@ -172,7 +172,8 @@ class Progress:
     Classe che gestisce il logging dei task asincroni
     Puo essere inizializzata automaticamente tramite i due decoratori
     che forniscono progress_manager alla funzione decorata
-    """
+    """   
+    
     def __init__(self, plone, task_name):
         if isinstance(plone, ImplicitAcquisitionWrapper):
             setSite(plone)
