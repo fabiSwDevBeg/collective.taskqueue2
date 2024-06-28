@@ -96,12 +96,12 @@ def progress_manager(func, context=None):
                 nome_app = args[1][2] if len(args) > 1 and len(args[1]) > 2 else None
                 plone_site = app[nome_app] if app and nome_app else None
     
-            server_name = 'localhost'
-            protocol = 'https'
-            request = app.REQUEST
-            request.other['SERVER_URL'] = '{}://{}'.format(protocol, server_name)
-            request.setServerURL(protocol, server_name)
-            request.other['VirtualRootPhysicalPath'] = plone_site.getPhysicalPath()
+            #server_name = 'localhost'
+            #protocol = 'https'
+            #request = app.REQUEST
+            #request.other['SERVER_URL'] = '{}://{}'.format(protocol, server_name)
+            #request.setServerURL(protocol, server_name)
+            #request.other['VirtualRootPhysicalPath'] = plone_site.getPhysicalPath()
 
             progress_manager = Progress(plone_site, task_name)
             
