@@ -1,13 +1,12 @@
 # Basic Adapter
 # use your own context
+from collective.taskqueue2.huey_progress_manager import Progress
+from collective.taskqueue2.huey_progress_manager import get_all_processes
 from collective.taskqueue2.interfaces import IAsyncContext
-from collective.taskqueue2.viewlets.async_manager import TERMINATI
+from plone import api
 from plone.app.contenttypes.interfaces import IFolder
 from zope.component import adapter
 from zope.interface import implementer
-from collective.taskqueue2.huey_progress_manager import Progress
-from collective.taskqueue2.huey_progress_manager import get_all_processes
-from plone import api
   
 
 @adapter(IFolder)
@@ -28,7 +27,10 @@ class BasicAsyncAwareContext():
         """ return status of process by id"""
         
         progress_class = Progress(self.app, id_task)
-        return progress_class.get_progress(self.context), progress_class.get_status(self.context)
+        return (
+            progress_class.get_progress(self.context),
+            progress_class.get_status(self.context)
+        )
 
     def setProcess(self, id_task, progress):
         """ store progress on Redis"""
