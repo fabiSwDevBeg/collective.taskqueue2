@@ -58,9 +58,9 @@ def task_not_executed_handler(signal, task, exc=None):
     # correspond to error conditions.
     print('[%s] %s - not executed' % (signal, task.id))
 
-@huey_taskqueue.signal(SIGNAL_COMPLETE)
-def task_success(signal, task):
-    # This handle will be called for each task that completes successfully.
-    pass
+#@huey_taskqueue.signal(SIGNAL_COMPLETE)
+#def task_success(signal, task):
+    ## This handle will be called for each task that completes successfully.
+    #pass
 
 LOG.info(f"Using taskqueue {huey_taskqueue}, {huey_taskqueue.__dict__}")

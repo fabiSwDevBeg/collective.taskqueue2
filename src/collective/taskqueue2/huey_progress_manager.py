@@ -44,6 +44,16 @@ def getApp(*args, **kwargs):
     # man, freaking zope2 is weird
     return Zope2.bobo_application(*args, **kwargs)
 
+def getAllIAsyncContext(context):
+    catalog = api.portal.getToolByName(context, 'portal_catalog')
+    query = {
+            'path': {'query': '/', 'depth': -1},
+                'object_provides': IAsyncContext,
+        }
+    brains = catalog.unrestrictedSearchResults(query)
+
+    for b in brains:
+        yield b    
 
 def progress_manager(func, context=None):
     """
@@ -155,8 +165,8 @@ def get_all_processes(context):
         unique_task_names = list(set(task['task_id'] for task in data))
         return unique_task_names
     except:
-        return []  
-
+        return []
+    
 class Progress:
     """
     Classe che gestisce il logging dei task asincroni
@@ -179,9 +189,18 @@ class Progress:
         elapsed = current_time - self.start_time
         return elapsed.total_seconds()   
 
-    def set_status(self, context, message, status_type):
+    def set_status(self, context, message, status_type, **extra_metadata):
         """
-        
+        Imposta uno stato sulla IAnnotations relativa al context
+        sulla chiave self.task_name
+            'status_type': status_type,
+            'data': datetime di invio,
+            'message': message,
+            'time_elapsed': tempo di esecuzione in secondi
+                dall'istanziazione della classe,
+            'user': SYSTEM per gli utenti anonimi oppure l'username,
+            'request': oggetto richiesta del context
+            'extra_metadata': argomenti passati a extra_metadata,
         """
         try:
             if not check_interface(context):
@@ -189,20 +208,20 @@ class Progress:
             annotation = IAnnotations(context)
             if self.task_name not in annotation:
                 annotation[self.task_name] = []
-            #dictionary = api.portal.get_registry_record(REG_KEY)
+                
+            metadata = {}
+            metadata.update(extra_metadata)
+            
             new_entry = {
-                #'task_id': self.task_name,
-                'context_path': "/".join(context.getPhysicalPath()),
                 'status_type': status_type,
                 'data': datetime.datetime.now(),
                 'message': message,
                 'time_elapsed': self.elapsed_time(),
-                'user': self.userid if self.userid else "SYSTEM",
+                'userid': self.userid or "SYSTEM",
+                'request': context.REQUEST,
+                'extra_metadata': metadata,
             }
-            #dictionary.append(new_entry)
             annotation[self.task_name].insert(0, new_entry)
-            #dictionary.insert(0, new_entry)
-            #api.portal.set_registry_record(REG_KEY, dictionary)
         except Exception as e:
             tb = traceback.format_exc()
             logger.error(f"Errore nel set dello stato per {self.task_name} "
@@ -213,6 +232,11 @@ class Progress:
             transaction.commit()
         
     def get_status(self, context):
+        """
+        Ritorna una lista di dizionari contenente tutto lo storico degli stati
+        per self.task_name, ordinato cronologicamente in modo tale
+        che l'elemento alla posizione [0] sia il più recente.
+        """
         try:
             if not check_interface(context):
                 return
@@ -220,17 +244,25 @@ class Progress:
             if self.task_name not in annotation:
                 return
             return annotation[self.task_name]
-            #dictionary = api.portal.get_registry_record(REG_KEY)
-            #if not dictionary:
-                #return
-            #dictionary_filtered = [entry for entry in dictionary if entry['task_id'] == self.task_name]
-            #return dictionary_filtered
         except Exception as e:
             logger.error(f"Errore nel get dello stato per {self.task_name} "
                          f"su {'/'.join(context.getPhysicalPath())}: {str(e)}")            
             return    
 
-    def set_progress(self, context, progress):
+    def set_progress(self, context, progress, **extra_metadata):
+        """
+        Imposta un progresso sul RedisStorage, come chiave il path del context
+        Il progresso non è persistito, al termine dell'esecuzione viene chiamato
+        set_end_progress che elimina le chiavi relative al progresso in corso
+        N.B. tutti i parametri della funzione eccetto context devono essere Pickle-abili
+            'task_id': il task_name con la quale è stata instanziata la classe,
+            'progress': progress,
+            'timestart': timestamp di istanziazione della classe,
+            'timestamp': timestamp di esecuzione,
+            'time_elapsed': tempo di esecuzione in secondi dall'istanziazione della classe,
+            'userid': SYSTEM per gli utenti anonimi oppure l'username,
+            'extra_metadata': argomenti passati a extra_metadata,
+        """
         try:
             if not check_interface(context):
                 return
@@ -242,13 +274,18 @@ class Progress:
             else:
                 json_string = init_dict.decode('utf-8')
                 data = json.loads(json_string)
+                
+            metadata = {}
+            metadata.update(extra_metadata)
+            
             data.append({
                 'task_id': self.task_name,
                 'progress': progress,
                 'timestart': self.start_time.timestamp(),
                 'timestamp': datetime.datetime.now().timestamp(),
-                'userid': self.userid if self.userid else "SYSTEM",
                 'time_elapsed': self.elapsed_time(),
+                'userid': self.userid or "SYSTEM",
+                'extra_metadata': metadata,
             })
             huey_taskqueue.storage.put_data(
                 "/".join(context.getPhysicalPath()),
@@ -260,6 +297,10 @@ class Progress:
             return
         
     def set_end_progress(self, context):
+        """
+        Rimuove il progresso sul RedisStorage, come chiave il path del context
+        eliminando i dizionari che hanno task_id == self.task_name
+        """
         try:
             if not check_interface(context):
                 return
@@ -281,6 +322,10 @@ class Progress:
             return            
 
     def get_progress(self, context):
+        """
+        Ritorna il dizionario più recente relativo al progresso
+        con task_id == self.task_name
+        """
         try:
             if not check_interface(context):
                 return            
@@ -294,28 +339,31 @@ class Progress:
             filtered_dict = [task for task in data if task['task_id'] == self.task_name]
             if not filtered_dict:
                 return {}
-            return max(filtered_dict, key=lambda x: x['timestamp'])
+            #return max(filtered_dict, key=lambda x: x['timestamp'])
+            return filtered_dict[-1]
         except Exception as e:
             logger.error(f"Errore nel get del progresso per {self.task_name} "
                          f"su {'/'.join(context.getPhysicalPath())}: {str(e)}")
             return {}      
 
 
-    #def clear_dict(self, dt):
-        #if not isinstance(dt, datetime.datetime):
-            #return
-        #try:
-            #dictionary = [value for value in dictionary if value['data'] >= dt]
-            #dictionary.append({
-                #'task_id': 'SYSTEM',
-                #'status_type': 'INFO',
-                #'data': datetime.datetime.now(),
-                #'message': 'I Logs precedenti al {} sono stati eliminati.'
-                #.format(dt.strftime("%A %d %B %Y, %H:%M:%S")),
-            #})       
-            #api.portal.set_registry_record(REG_KEY, dictionary)
-            #transaction.manager.commit()
-        #except:
-            #logger.error(f"Errore nel get del progresso per {self.task_name} "
-                         #f"su {'/'.join(context.getPhysicalPath())}: {str(e)}")            
-            #return
+
+    def clear_before_dt(self, context, dt):
+        """
+        Rimuove tutti gli stati presenti sui contesti
+        che implementano IAsyncContext precedenti al datetime.datetime dt
+        passato alla funzione
+        """
+        if not isinstance(dt, datetime.datetime):
+            return
+        try:
+            for i, brain in enumerate(getAllIAsyncContext(context), 1):
+                container = brain.getObject()
+                annotation = IAnnotations(container)
+                for key, task_statuses in annotation.item():
+                    annotation[key] = [value for value in task_statuses if value['data'] >= dt]
+        except:
+            logger.error(f"Errore nel progresso di pulizia degli status "
+                         f"prima del {dt.strftime("%d %B %Y, %H:%M:%S")} "
+                         f"su {'/'.join(context.getPhysicalPath())}: {str(e)}")            
+            return
