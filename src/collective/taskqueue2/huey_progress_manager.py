@@ -1,26 +1,21 @@
+from AccessControl.SecurityManagement import newSecurityManager, noSecurityManager
+from Acquisition import ImplicitAcquisitionWrapper
+from OFS.Application import Application
+from Testing.makerequest import makerequest
 from collective.taskqueue2.huey_config import huey_taskqueue
-from persistent.dict import PersistentDict
 from collective.taskqueue2.interfaces import IAsyncContext
+from collective.taskqueue2.interfaces import IProgress
 from huey.constants import EmptyData
 from plone import api
-from zope.component.hooks import setSite
-from zope.component.hooks import getSite
-from Acquisition import ImplicitAcquisitionWrapper
-#from zope.interface import providedBy
-
-from Testing.makerequest import makerequest
 from zope.annotation import IAnnotations
-
-from AccessControl.SecurityManagement import newSecurityManager, noSecurityManager
-from OFS.Application import Application
-#from OFS.CopySupport
-#from plone.api.content    
+from zope.component.hooks import setSite
+from zope.interface import implementer
+import Zope2
 import datetime
 import functools
 import json
-import transaction
-import Zope2
 import traceback
+import transaction
 
 
 log_status_types = ['FAILURE', 'SUCCESS', 'PENDING']
@@ -57,6 +52,17 @@ def getAllIAsyncContext(context):
 
 def progress_manager(func, context=None):
     """
+    Decoratore che gestisce il progresso di un task asincrono.
+
+    Args:
+        func (callable): La funzione da decorare.
+        context (object, optional): Il contesto nel quale il progresso verrà registrato.
+
+    Returns:
+        callable: La funzione decorata.
+        
+        
+        
     @progress_decorator delega il compito di richiamare
     set_status, set_progress e set_end_progress
     alla funzione decorata
@@ -125,6 +131,8 @@ def progress_manager(func, context=None):
                                             "Task Iniziato!",
                                             log_status_types[2]
                                             )
+            #Chiamo la funzione con progress_manager, delegando il compito di
+            #chiamare set_progress per aggiornare l'avanzamento
             func(progress_manager, *args, **kwargs)
             if context:
                 progress_manager.set_end_progress(context)
@@ -140,7 +148,7 @@ def progress_manager(func, context=None):
             if context:
                 progress_manager.set_end_progress(context)
                 progress_manager.set_status(context,
-                                            f"Task Terminato! {e}",
+                                            f"Task Fallito! {e}",
                                             log_status_types[1]
                                             )                       
             logger.error(f"Errore nella creazione del contesto per {task_name}: {str(e)} \n {tb}")
@@ -166,7 +174,9 @@ def get_all_processes(context):
         return unique_task_names
     except:
         return []
-    
+
+
+@implementer(IProgress)   
 class Progress:
     """
     Classe che gestisce il logging dei task asincroni
@@ -191,18 +201,6 @@ class Progress:
         return elapsed.total_seconds()   
 
     def set_status(self, context, message, status_type, **extra_metadata):
-        """
-        Imposta uno stato sulla IAnnotations relativa al context
-        sulla chiave self.task_name
-            'status_type': status_type,
-            'data': datetime di invio,
-            'message': message,
-            'time_elapsed': tempo di esecuzione in secondi
-                dall'istanziazione della classe,
-            'user': SYSTEM per gli utenti anonimi oppure l'username,
-            'request': oggetto richiesta del context
-            'extra_metadata': argomenti passati a extra_metadata,
-        """
         try:
             if not check_interface(context):
                 return
@@ -233,11 +231,6 @@ class Progress:
             transaction.commit()
         
     def get_status(self, context):
-        """
-        Ritorna una lista di dizionari contenente tutto lo storico degli stati
-        per self.task_name, ordinato cronologicamente in modo tale
-        che l'elemento alla posizione [0] sia il più recente.
-        """
         try:
             if not check_interface(context):
                 return
@@ -251,19 +244,6 @@ class Progress:
             return    
 
     def set_progress(self, context, progress, **extra_metadata):
-        """
-        Imposta un progresso sul RedisStorage, come chiave il path del context
-        Il progresso non è persistito, al termine dell'esecuzione viene chiamato
-        set_end_progress che elimina le chiavi relative al progresso in corso
-        N.B. tutti i parametri della funzione eccetto context devono essere Pickle-abili
-            'task_id': il task_name con la quale è stata instanziata la classe,
-            'progress': progress,
-            'timestart': timestamp di istanziazione della classe,
-            'timestamp': timestamp di esecuzione,
-            'time_elapsed': tempo di esecuzione in secondi dall'istanziazione della classe,
-            'userid': SYSTEM per gli utenti anonimi oppure l'username,
-            'extra_metadata': argomenti passati a extra_metadata,
-        """
         try:
             if not check_interface(context):
                 return
@@ -298,10 +278,6 @@ class Progress:
             return
         
     def set_end_progress(self, context):
-        """
-        Rimuove il progresso sul RedisStorage, come chiave il path del context
-        eliminando i dizionari che hanno task_id == self.task_name
-        """
         try:
             if not check_interface(context):
                 return
@@ -323,10 +299,6 @@ class Progress:
             return            
 
     def get_progress(self, context):
-        """
-        Ritorna il dizionario più recente relativo al progresso
-        con task_id == self.task_name
-        """
         try:
             if not check_interface(context):
                 return            
@@ -350,11 +322,6 @@ class Progress:
 
 
     def clear_before_dt(self, context, dt):
-        """
-        Rimuove tutti gli stati presenti sui contesti
-        che implementano IAsyncContext precedenti al datetime.datetime dt
-        passato alla funzione
-        """
         if not isinstance(dt, datetime.datetime):
             return
         try:
