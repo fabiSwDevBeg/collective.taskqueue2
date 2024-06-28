@@ -6,14 +6,13 @@
 
  <!-- -*- extra stuff goes here -*- -->
 
-    
-  <browser:page
-    name="taskprova"
-    for="collective.taskqueue2.interfaces.IAsyncContext"
-    class=".prova.Taskprova"
-    permission="zope2.View"
-    layer="collective.taskqueue2.interfaces.ICollectiveTaskqueue2Layer"
-    />
-
+ <browser:page
+    for="Products.CMFCore.interfaces.ISiteRoot"
+    name="taskqueue-stats"
+    class=".taskqueue.TaskQueue"
+    attribute="stats"
+    permission="cmf.ManagePortal"
+  />
+  
 
 </configure>

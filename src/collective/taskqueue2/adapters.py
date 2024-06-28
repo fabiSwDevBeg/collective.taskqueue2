@@ -5,8 +5,8 @@ from collective.taskqueue2.viewlets.async_manager import TERMINATI
 from plone.app.contenttypes.interfaces import IFolder
 from zope.component import adapter
 from zope.interface import implementer
-from collective.taskqueue2.huey_events import Progress
-from collective.taskqueue2.huey_events import get_all_processes
+from collective.taskqueue2.huey_progress_manager import Progress
+from collective.taskqueue2.huey_progress_manager import get_all_processes
 from plone import api
   
 

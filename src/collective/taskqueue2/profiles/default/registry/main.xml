@@ -4,6 +4,4 @@
     i18n:domain="collective.taskqueue2">
 
 <!-- -*- extra stuff goes here -*- -->
-    <records interface="collective.taskqueue2.browser.controlpanel.ITaskQueue2ControlPanel"
-         prefix="taskqueue2" />
 </registry>
