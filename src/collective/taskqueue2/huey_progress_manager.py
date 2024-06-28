@@ -365,6 +365,6 @@ class Progress:
                     annotation[key] = [value for value in task_statuses if value['data'] >= dt]
         except:
             logger.error(f"Errore nel progresso di pulizia degli status "
-                         f"prima del {dt.strftime("%d %B %Y, %H:%M:%S")} "
+                         f"prima del {dt.strftime('%d %B %Y, %H:%M:%S')} "
                          f"su {'/'.join(context.getPhysicalPath())}: {str(e)}")            
             return
