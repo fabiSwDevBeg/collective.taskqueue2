@@ -275,13 +275,17 @@ def listen_event(event):
 Please read the Huey documentation on `result` handling (in case you need to access
 the result for whatever reason).
 
-# append_progress_manager
-## Decorator to manage the progress of an asynchronous task
+# Decorator: @append_progress_manager
+## Manage the progress of an asynchronous task
 
 In case you want to create your own Huey task and you want to keep track of the 
 progress of execution of the task, you can use the decorator @append_progress_manager
-that automatically creates the environment to use Plone APIs and setSite and creates
-an istance of Progress to manage logging.
+that automatically creates the environment to use Plone APIs and setSite, registers
+the function as a huey task and creates an istance of Progress to manage logging.
+
+The logging is done on two levels:
+ - Progress: on Huey Storage
+ - Status: on context IAnnotation
 
 `@append_progress_manager` delegates the task of calling `set_status`, 
 `set_progress`, and `set_end_progress` to the decorated function.
@@ -290,7 +294,7 @@ an istance of Progress to manage logging.
 `@append_progress_manager(context)` independently handles the initial states 
 and delegates only the `set_progress` to the decorated function.
 
-
+Example:
 ```
 @append_progress_manager
 def my_task(progress_manager,*args, **kw):
