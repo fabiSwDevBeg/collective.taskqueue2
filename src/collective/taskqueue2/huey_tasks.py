@@ -14,7 +14,6 @@ import Zope2
 
 # Start huey consumer as thread
 
-
 @huey_taskqueue.on_startup()
 def on_startup():
     LOG.info("ON STARTUP")
@@ -32,13 +31,13 @@ def post_execute_hook(task, task_value, exc):
     pass
 
 
-#@huey_taskqueue.periodic_task(crontab(minute="*", hour="*"))
-#def dump_queue_stats():
-    #data = dict(
-        #pending=len(huey_taskqueue.pending()),
-        #scheduled=len(huey_taskqueue.scheduled()),
-    #)
-    #LOG.info(f"Taskqueue stats: {data}")
+@huey_taskqueue.periodic_task(crontab(minute="*", hour="*"))
+def dump_queue_stats():
+    data = dict(
+        pending=len(huey_taskqueue.pending()),
+        scheduled=len(huey_taskqueue.scheduled()),
+    )
+    LOG.info(f"Taskqueue stats: {data}")
 
 
 @huey_taskqueue.task()

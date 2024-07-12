@@ -1,21 +1,24 @@
+# -*- coding: utf-8 -*-\
 from AccessControl.SecurityManagement import newSecurityManager, noSecurityManager
 from Acquisition import ImplicitAcquisitionWrapper
 from OFS.Application import Application
 from Testing.makerequest import makerequest
 from collective.taskqueue2.huey_config import huey_taskqueue
 from collective.taskqueue2.interfaces import IAsyncContext
-from collective.taskqueue2.interfaces import IProgress
 from huey.constants import EmptyData
 from plone import api
 from zope.annotation import IAnnotations
 from zope.component.hooks import setSite
 from zope.interface import implementer
+from persistent.list import PersistentList
+from persistent.dict import PersistentDict
 import Zope2
 import datetime
 import functools
 import json
 import traceback
 import transaction
+import hashlib
 
 
 log_status_types = ['FAILURE', 'SUCCESS', 'PENDING']
@@ -42,15 +45,16 @@ def getApp(*args, **kwargs):
 def getAllIAsyncContext(context):
     catalog = api.portal.getToolByName(context, 'portal_catalog')
     query = {
-            'path': {'query': '/', 'depth': -1},
-                'object_provides': IAsyncContext,
+            'path': {'query': '/'.join(context.getPhysicalPath()), 'depth': -1},
+                'object_provides': IAsyncContext.__identifier__,
         }
     brains = catalog.unrestrictedSearchResults(query)
 
     for b in brains:
-        yield b    
+        yield b
+        
 
-def progress_manager(func, context=None):
+def append_progress_manager(func, context=None):
     """
     Decoratore che gestisce il progresso di un task asincrono.
 
@@ -63,11 +67,11 @@ def progress_manager(func, context=None):
         
         
         
-    @progress_decorator delega il compito di richiamare
+    @append_progress_manager delega il compito di richiamare
     set_status, set_progress e set_end_progress
     alla funzione decorata
 
-    @progress_decorator(context)gestisce autonomamente gli stati iniziali e delega
+    @append_progress_manager(context) gestisce autonomamente gli stati iniziali e delega
     solo il set_progress
     alla funzione decorata
     
@@ -75,6 +79,12 @@ def progress_manager(func, context=None):
     - Da bin/instance inserendo un entry_point in setup.py nel formato:
       [zopectl.command]
       nome_task = path.to.class:function_name
+      
+      registrare il path in cui sono presenti i tasks all'interno del prodotto,
+      sempre nel setup.py in entry_point, nel formato:
+      [collective.taskqueue2]
+      mypackage = path.to.class
+      
     
       per poi essere richiamata da un crontab nel buildout.cfg come:
       [buildout]
@@ -97,7 +107,8 @@ def progress_manager(func, context=None):
       function_name('site_name')
       
     """
-    @huey_taskqueue.task(immediate=False)  
+   
+    @huey_taskqueue.task()
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         task_name = func.__name__
@@ -110,8 +121,11 @@ def progress_manager(func, context=None):
                 plone_site = app.restrictedTraverse("/"+args[0], None)
             else:
                 nome_app = args[1][2] if len(args) > 1 and len(args[1]) > 2 else None
+                if not nome_app or nome_app not in app:
+                    raise Exception("Il PloneSite specificato non è presente!")
                 plone_site = app[nome_app] if app and nome_app else None
     
+            
             #server_name = 'localhost'
             #protocol = 'https'
             #request = app.REQUEST
@@ -162,21 +176,29 @@ def progress_manager(func, context=None):
 def get_all_processes(context):
     try:
         if not check_interface(context):
-            return            
-        init_dict = huey_taskqueue.storage.peek_data(
-            "/".join(context.getPhysicalPath())
-        )
-        if init_dict is EmptyData:
-            return []
-        json_string = init_dict.decode('utf-8')
-        data = json.loads(json_string)
-        unique_task_names = list(set(task['task_id'] for task in data))
-        return unique_task_names
-    except:
-        return []
+            return {}
+        annotation = IAnnotations(context)
+        return annotation
+    except Exception as e:
+        logger.error(f"Errore nel get dello stato "
+                     f"su {'/'.join(context.getPhysicalPath())}: {str(e)}")            
+        return {}       
+    #try:
+        #if not check_interface(context):
+            #return            
+        #init_dict = huey_taskqueue.storage.peek_data(
+            #"/".join(context.getPhysicalPath())
+        #)
+        #if init_dict is EmptyData:
+            #return []
+        #json_string = init_dict.decode('utf-8')
+        #data = json.loads(json_string)
+        #unique_task_names = list(set(task['task_id'] for task in data))
+        #return unique_task_names
+    #except:
+        #return []
 
 
-@implementer(IProgress)   
 class Progress:
     """
     Classe che gestisce il logging dei task asincroni
@@ -192,35 +214,56 @@ class Progress:
         self.task_name = task_name
         self.userid = api.user.get_current().getId()
         self.portal = api.portal.get()
+        base_str = self.task_name + self.start_time.isoformat()
+        hash_obj = hashlib.sha256(base_str.encode())
+        self.task_id = hash_obj.hexdigest()[:16] 
         
     
 
     def elapsed_time(self):
+        """Ritorna il tempo trascorso dall'istanziazione della classe in secondi"""
         current_time = datetime.datetime.now()
         elapsed = current_time - self.start_time
         return elapsed.total_seconds()   
 
     def set_status(self, context, message, status_type, **extra_metadata):
+        """
+        Imposta uno stato sulla IAnnotations relativa al context
+        sulla chiave self.task_name
+            'status_type': status_type,
+            'data': datetime di invio,
+            'message': message,
+            'time_elapsed': tempo di esecuzione in secondi
+                dall'istanziazione della classe,
+            'user': SYSTEM per gli utenti anonimi oppure l'username,
+            'request': oggetto richiesta del context
+            'extra_metadata': argomenti passati a extra_metadata,
+        """        
         try:
             if not check_interface(context):
                 return
             annotation = IAnnotations(context)
-            if self.task_name not in annotation:
-                annotation[self.task_name] = []
-                
-            metadata = {}
-            metadata.update(extra_metadata)
+            #if 'tasks' not in annotation:
+                #annotation['tasks'] = PersistentDict()
+            
+            metadata = PersistentDict(extra_metadata)
             
             new_entry = {
+                'task_id': self.task_id,
                 'status_type': status_type,
                 'data': datetime.datetime.now(),
                 'message': message,
                 'time_elapsed': self.elapsed_time(),
                 'userid': self.userid or "SYSTEM",
-                'request': context.REQUEST,
+                'request': vars(context.REQUEST),
                 'extra_metadata': metadata,
             }
-            annotation[self.task_name].insert(0, new_entry)
+            new_entry_pd = PersistentDict(new_entry)
+            
+            if self.task_name not in annotation:
+                annotation[self.task_name] = PersistentList()
+            info =  annotation[self.task_name]
+            info.insert(0, new_entry_pd)
         except Exception as e:
             tb = traceback.format_exc()
             logger.error(f"Errore nel set dello stato per {self.task_name} "
@@ -231,19 +274,35 @@ class Progress:
             transaction.commit()
         
     def get_status(self, context):
+        """
+        Ritorna una lista di dizionari contenente tutto lo storico degli stati
+        per self.task_name, ordinato cronologicamente in modo tale
+        che l'elemento alla posizione [0] sia il più recente.
+        """        
         try:
             if not check_interface(context):
                 return
             annotation = IAnnotations(context)
-            if self.task_name not in annotation:
-                return
-            return annotation[self.task_name]
+            return annotation.get(self.task_name)
         except Exception as e:
             logger.error(f"Errore nel get dello stato per {self.task_name} "
                          f"su {'/'.join(context.getPhysicalPath())}: {str(e)}")            
             return    
 
     def set_progress(self, context, progress, **extra_metadata):
+        """
+        Imposta un progresso sul RedisStorage, come chiave il path del context
+        Il progresso non è persistito, al termine dell'esecuzione viene chiamato
+        set_end_progress che elimina le chiavi relative al progresso in corso
+        N.B. tutti i parametri della funzione eccetto context devono essere Pickle-abili
+            'task_id': il task_name con la quale è stata instanziata la classe,
+            'progress': progress,
+            'timestart': timestamp di istanziazione della classe,
+            'timestamp': timestamp di esecuzione,
+            'time_elapsed': tempo di esecuzione in secondi dall'istanziazione della classe,
+            'userid': SYSTEM per gli utenti anonimi oppure l'username,
+            'extra_metadata': argomenti passati a extra_metadata,
+        """        
         try:
             if not check_interface(context):
                 return
@@ -278,6 +337,10 @@ class Progress:
             return
         
     def set_end_progress(self, context):
+        """
+        Rimuove il progresso sul RedisStorage, come chiave il path del context
+        eliminando i dizionari che hanno task_id == self.task_name
+        """        
         try:
             if not check_interface(context):
                 return
@@ -299,6 +362,10 @@ class Progress:
             return            
 
     def get_progress(self, context):
+        """
+        Ritorna il dizionario più recente relativo al progresso
+        con task_id == self.task_name
+        """        
         try:
             if not check_interface(context):
                 return            
@@ -322,6 +389,11 @@ class Progress:
 
 
     def clear_before_dt(self, context, dt):
+        """
+        Rimuove tutti gli stati presenti sui contesti
+        che implementano IAsyncContext precedenti al datetime.datetime dt
+        passato alla funzione
+        """        
         if not isinstance(dt, datetime.datetime):
             return
         try:

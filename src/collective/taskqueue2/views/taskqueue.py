@@ -10,5 +10,6 @@ class TaskQueue(BrowserView):
         r = dict(
             pending=len(huey_taskqueue.pending()),
             scheduled=len(huey_taskqueue.scheduled()),
+            parsed=str(vars(huey_taskqueue))
         )
         return json.dumps(r)

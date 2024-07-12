@@ -7,7 +7,8 @@ from plone import api
 from plone.app.contenttypes.interfaces import IFolder
 from zope.component import adapter
 from zope.interface import implementer
-  
+from plone.indexer.decorator import indexer
+
 
 @adapter(IFolder)
 @implementer(IAsyncContext)
@@ -31,7 +32,7 @@ class BasicAsyncAwareContext():
     def getProcessInfo(self, id_task):
         """ return status of process by id"""
         
-        self.generateProgressClassIfNeeded(self, id_task)
+        self.generateProgressClassIfNeeded(id_task)
         return (
             self.progress_class.get_progress(self.context),
             self.progress_class.get_status(self.context)
@@ -40,11 +41,11 @@ class BasicAsyncAwareContext():
     def setProcess(self, id_task, progress):
         """ store progress on Redis"""
         
-        self.generateProgressClassIfNeeded(self, id_task)
+        self.generateProgressClassIfNeeded(id_task)
         self.progress_class.set_progress(self.context, progress)
 
     def deleteProcess(self, id_task, **kwargs):
         """ delete process statuses from Redis"""
         
-        self.generateProgressClassIfNeeded(self, id_task)
+        self.generateProgressClassIfNeeded(id_task)
         self.progress_class.set_end_progress(self.context)

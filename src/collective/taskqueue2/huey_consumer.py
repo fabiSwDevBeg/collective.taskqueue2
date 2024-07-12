@@ -8,11 +8,20 @@ from huey.consumer_options import ConsumerConfig
 # This import must remain in place in order to register the Huey tasks during
 # startup !!!  Don't remove, required for task registration!
 import collective.taskqueue2.huey_tasks  # noqa: F401
+
 import os
 import pprint
 import signal
 import threading
+import importlib
+import pkg_resources
 
+def _check_entry_point(group):
+    try:
+        for entry_point in pkg_resources.iter_entry_points(group):
+            importlib.import_module(entry_point.module_name)
+    except Exception as e:
+        LOG.error("Errore nell'inizializzazione di {}: {}",entry_point.module_name, str(e))
 
 # monkey-patch huey signal handler for integration with Zope
 def my_set_signal_handlers(self):
@@ -75,6 +84,7 @@ for key, value in os.environ.items():
 # startup handler for starting Huey consumer thread
 def startup(event):
     try:
+        _check_entry_point("collective.taskqueue2")
         _startup(event)
     except Exception as e:
         LOG.error(f"collective.taskqueue2: error starting consumer thread: {e}")
@@ -95,6 +105,7 @@ def _startup(event):
         config.validate()
         config.setup_logger()
         consumer = huey_taskqueue.create_consumer(**config.values)
+        
 
         th = threading.Thread(target=consumer.run)
         th.start()

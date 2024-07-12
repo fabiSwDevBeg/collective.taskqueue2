@@ -239,7 +239,6 @@ schedule_browser_view(
 )
 ```
 
-
 ## Writing your own Huey tasks in your application
 
 
@@ -276,7 +275,100 @@ def listen_event(event):
 Please read the Huey documentation on `result` handling (in case you need to access
 the result for whatever reason).
 
+# append_progress_manager
+## Decorator to manage the progress of an asynchronous task
 
+In case you want to create your own Huey task and you want to keep track of the 
+progress of execution of the task, you can use the decorator @append_progress_manager
+that automatically creates the environment to use Plone APIs and setSite and creates
+an istance of Progress to manage logging.
+
+`@append_progress_manager` delegates the task of calling `set_status`, 
+`set_progress`, and `set_end_progress` to the decorated function.
+
+
+`@append_progress_manager(context)` independently handles the initial states 
+and delegates only the `set_progress` to the decorated function.
+
+
+```
+@append_progress_manager
+def my_task(progress_manager,*args, **kw):
+   context = plone.api.portal.get()
+   progress_manager.set_status(
+      context,
+      "Task Started!",
+      "PENDING",
+      **args
+      )
+   ...
+   #Task Running
+   progress = 70
+   ...
+   progress_manager.set_progress(
+      context,
+      progress,
+      **args
+   )
+   
+   ...
+   #Task Completed
+   progress_manager.set_end_progress(context)
+   progress_manager.set_status(
+      context,
+      "Task Finshed!",
+      "SUCCESS",
+      **args
+      )
+   
+```
+
+## How to call the decorated function
+The decorated function can be called in different ways:
+
+- From bin/instance by inserting an entry point in setup.py in the format:
+
+   ```
+   [zopectl.command]
+   task_name = path.to.class:function_name
+   ```
+   Register the path where the all tasks are present within the product 
+   in the setup.py entry point, in the format:
+   ```
+   [collective.taskqueue2]
+   mypackage = path.to.class.containing.tasks
+   ```
+   Then, it can be called from a crontab in buildout.cfg as:
+   
+   ```
+   [buildout]
+   parts += 
+       routine_name
+   
+   [routine_name]
+   recipe = z3c.recipe.usercrontab
+   times = * * * * *
+   command = ${buildout:directory}/bin/instance task_name site_name
+   comment = 
+   ```
+   
+   Or via command line:
+   ```
+   ${buildout:directory}/bin/instance task_name site_name
+   ```
+
+   In this case, the function is called with:
+
+   function_name(<Application at>, ['-c', 'routine_name', 'site_name'])
+   
+- From a .py code:
+
+   ```
+   from path.to.class import function_name
+   function_name('site_name')
+   ```
+   This approach ensures that the task's progress is managed and tracked appropriately, providing better insight into the execution status of your asynchronous tasks.
+    
 ## Security
 
 
